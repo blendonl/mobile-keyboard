@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.splitkeyboard.model.KeyboardConfig
+import com.splitkeyboard.ui.container.KeyboardContainerActivity
 import com.splitkeyboard.ui.overlay.KeyboardOverlayService
 import com.splitkeyboard.ui.theme.SplitKeyboardTheme
 
@@ -86,6 +87,39 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            // Container Activity Section (TRUE LAYOUT)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Container Mode (True Layout) ⭐",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Text(
+                        text = "TRUE side-by-side layout where the app takes actual space in the middle. Left Keyboard | App | Right Keyboard. Best option!",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Button(
+                        onClick = {
+                            val intent = Intent(context, KeyboardContainerActivity::class.java)
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Launch Container Mode")
+                    }
+                }
+            }
+
             // System Overlay Section (NEW METHOD)
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -98,12 +132,12 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Split Keyboard Overlay (Recommended)",
+                        text = "Overlay Mode (Visual Effect)",
                         style = MaterialTheme.typography.titleMedium
                     )
 
                     Text(
-                        text = "Use system overlays to create true side panels. The app window will be narrower with keyboard panels on the left and right edges.",
+                        text = "Keyboard overlays on top of apps. Creates visual effect of side panels but doesn't resize the app window.",
                         style = MaterialTheme.typography.bodyMedium
                     )
 

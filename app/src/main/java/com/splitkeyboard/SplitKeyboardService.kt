@@ -28,7 +28,8 @@ class SplitKeyboardService : InputMethodService() {
     private var isShifted = false
 
     override fun onEvaluateFullscreenMode(): Boolean {
-        // Always use fullscreen mode so keyboard overlays the entire screen
+        // Use fullscreen mode to overlay entire screen
+        // With transparent middle section, this creates the visual effect of side keyboards
         return true
     }
 
@@ -44,26 +45,29 @@ class SplitKeyboardService : InputMethodService() {
 
     override fun onComputeInsets(outInsets: Insets?) {
         super.onComputeInsets(outInsets)
-        // Tell the system that our keyboard doesn't consume any vertical space
-        // This prevents the app from being resized or shifted up
-        outInsets?.apply {
-            contentTopInsets = 0
-            visibleTopInsets = 0
-            touchableInsets = Insets.TOUCHABLE_INSETS_REGION
-            touchableRegion.setEmpty()
 
-            // Add touchable regions for the left and right panels only
+        outInsets?.apply {
             keyboardView?.let { view ->
+                val screenHeight = view.height
                 val screenWidth = view.width
                 val panelWidth = (screenWidth * ((config?.widthPercent ?: 15f) / 100f)).toInt()
 
-                // Left panel touchable region
+                // Don't consume vertical space since our keyboard is on the sides
+                // This allows the app to use the full vertical space
+                contentTopInsets = 0
+                visibleTopInsets = 0
+
+                // Only the keyboard panels are touchable, middle area passes through to app
+                touchableInsets = Insets.TOUCHABLE_INSETS_REGION
+                touchableRegion.setEmpty()
+
+                // Left panel touchable region (full height)
                 touchableRegion.union(
-                    android.graphics.Rect(0, 0, panelWidth, view.height)
+                    android.graphics.Rect(0, 0, panelWidth, screenHeight)
                 )
-                // Right panel touchable region
+                // Right panel touchable region (full height)
                 touchableRegion.union(
-                    android.graphics.Rect(screenWidth - panelWidth, 0, screenWidth, view.height)
+                    android.graphics.Rect(screenWidth - panelWidth, 0, screenWidth, screenHeight)
                 )
             }
         }
@@ -78,7 +82,7 @@ class SplitKeyboardService : InputMethodService() {
     override fun onCreateInputView(): View {
         config = KeyboardConfig.load(this)
 
-        // Configure window to be truly fullscreen and overlay properly
+        // Configure window for fullscreen overlay with side panels
         window?.window?.let { win ->
             win.setBackgroundDrawableResource(android.R.color.transparent)
             win.setLayout(
@@ -87,20 +91,19 @@ class SplitKeyboardService : InputMethodService() {
             )
             win.setGravity(Gravity.TOP or Gravity.LEFT)
 
-            // Set flags to allow the window to extend over the entire screen
+            // Set flags for fullscreen overlay
             win.addFlags(
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
             )
             win.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
 
-            // Allow touches to pass through in areas without keys
+            // Allow touches to pass through in the middle area
             win.setFlags(
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
             )
 
-            // Make the window cover the full screen
             win.attributes = win.attributes?.apply {
                 width = WindowManager.LayoutParams.MATCH_PARENT
                 height = WindowManager.LayoutParams.MATCH_PARENT
@@ -109,7 +112,7 @@ class SplitKeyboardService : InputMethodService() {
             }
         }
 
-        // Ensure extract view is not shown in fullscreen mode
+        // Disable extract view
         setExtractViewShown(false)
 
         keyboardView = SplitKeyboardView(
@@ -117,7 +120,6 @@ class SplitKeyboardService : InputMethodService() {
             config?.widthPercent ?: 15f,
             ::handleKeyClick
         ).apply {
-            // Set layout parameters to fill the entire screen
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
