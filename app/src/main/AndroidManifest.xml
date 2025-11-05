@@ -32,6 +32,13 @@
             android:theme="@style/Theme.SplitKeyboard">
         </activity>
 
+        <activity
+            android:name=".ui.sample.SampleLauncherActivity"
+            android:exported="true"
+            android:label="Sample Keyboard-Aware Launcher"
+            android:theme="@style/Theme.SplitKeyboard">
+        </activity>
+
         <service
             android:name=".SplitKeyboardService"
             android:exported="true"

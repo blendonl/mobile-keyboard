@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.splitkeyboard.model.KeyboardConfig
 import com.splitkeyboard.ui.container.KeyboardContainerActivity
 import com.splitkeyboard.ui.overlay.KeyboardOverlayService
+import com.splitkeyboard.ui.sample.SampleLauncherActivity
 import com.splitkeyboard.ui.theme.SplitKeyboardTheme
 
 class SettingsActivity : ComponentActivity() {
@@ -137,9 +138,19 @@ fun SettingsScreen(
                     )
 
                     Text(
-                        text = "Keyboard overlays on top of apps. Creates visual effect of side panels but doesn't resize the app window.",
+                        text = "Keyboard overlays on top of apps. Apps that listen to keyboard broadcasts can resize themselves to create side-by-side effect.",
                         style = MaterialTheme.typography.bodyMedium
                     )
+
+                    Button(
+                        onClick = {
+                            val intent = Intent(context, SampleLauncherActivity::class.java)
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Open Sample Keyboard-Aware App")
+                    }
 
                     if (!hasOverlayPermission) {
                         Button(

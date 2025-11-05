@@ -35,6 +35,12 @@ class KeyboardOverlayService : Service() {
         private const val CHANNEL_ID = "keyboard_overlay_channel"
         const val ACTION_SHOW = "com.splitkeyboard.SHOW_OVERLAY"
         const val ACTION_HIDE = "com.splitkeyboard.HIDE_OVERLAY"
+
+        // Broadcast action for apps to listen to keyboard state
+        const val ACTION_KEYBOARD_STATE_CHANGED = "com.splitkeyboard.KEYBOARD_STATE_CHANGED"
+        const val EXTRA_IS_VISIBLE = "is_visible"
+        const val EXTRA_PANEL_WIDTH = "panel_width"
+        const val EXTRA_PANEL_WIDTH_PERCENT = "panel_width_percent"
     }
 
     override fun onCreate() {
@@ -107,14 +113,16 @@ class KeyboardOverlayService : Service() {
             WindowManager.LayoutParams.TYPE_PHONE
         }
 
-        // Left panel parameters
+        // Left panel parameters - positioned at left edge, always on top
         val leftParams = WindowManager.LayoutParams(
             panelWidth,
             WindowManager.LayoutParams.MATCH_PARENT,
             layoutFlag,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
+                    WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.START or Gravity.TOP
@@ -122,14 +130,16 @@ class KeyboardOverlayService : Service() {
             y = 0
         }
 
-        // Right panel parameters
+        // Right panel parameters - positioned at right edge, always on top
         val rightParams = WindowManager.LayoutParams(
             panelWidth,
             WindowManager.LayoutParams.MATCH_PARENT,
             layoutFlag,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
+                    WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.END or Gravity.TOP
@@ -139,22 +149,38 @@ class KeyboardOverlayService : Service() {
 
         // Create and add views
         leftPanelView = KeyboardPanelView(this, PanelSide.LEFT) { key ->
-            // Handle key click - TODO: implement text input
-            Toast.makeText(this, "Key: ${key.label}", Toast.LENGTH_SHORT).show()
+            handleKeyInput(key)
         }
 
         rightPanelView = KeyboardPanelView(this, PanelSide.RIGHT) { key ->
-            // Handle key click - TODO: implement text input
-            Toast.makeText(this, "Key: ${key.label}", Toast.LENGTH_SHORT).show()
+            handleKeyInput(key)
         }
 
         try {
             windowManager.addView(leftPanelView, leftParams)
             windowManager.addView(rightPanelView, rightParams)
+
+            // Broadcast that keyboard is now active - apps can listen and resize themselves
+            broadcastKeyboardState(true, panelWidth)
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this, "Failed to show overlays: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun handleKeyInput(key: com.splitkeyboard.model.Key) {
+        // Try to send input to the current app
+        // This is a simplified version - in production you'd use AccessibilityService
+        Toast.makeText(this, "Key: ${key.label}", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun broadcastKeyboardState(isVisible: Boolean, panelWidth: Int) {
+        val intent = Intent(ACTION_KEYBOARD_STATE_CHANGED).apply {
+            putExtra(EXTRA_IS_VISIBLE, isVisible)
+            putExtra(EXTRA_PANEL_WIDTH, panelWidth)
+            putExtra(EXTRA_PANEL_WIDTH_PERCENT, config?.widthPercent ?: 15f)
+        }
+        sendBroadcast(intent)
     }
 
     private fun hideOverlays() {
@@ -174,6 +200,9 @@ class KeyboardOverlayService : Service() {
         }
         leftPanelView = null
         rightPanelView = null
+
+        // Broadcast that keyboard is now hidden
+        broadcastKeyboardState(false, 0)
     }
 
     private fun createNotificationChannel() {
