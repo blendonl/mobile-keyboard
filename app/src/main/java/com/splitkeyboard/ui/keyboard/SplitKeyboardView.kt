@@ -63,6 +63,12 @@ class SplitKeyboardView(
         invalidate()
     }
 
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        // Force the view to measure to the full screen dimensions
+        val displayMetrics = context.resources.displayMetrics
+        setMeasuredDimension(displayMetrics.widthPixels, displayMetrics.heightPixels)
+    }
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         calculateKeyBounds()
