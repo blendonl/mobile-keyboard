@@ -168,22 +168,33 @@ class SplitKeyboardView(
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
-            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+            MotionEvent.ACTION_DOWN -> {
+                val key = findKeyAt(event.x, event.y)
+                if (key != null) {
+                    pressedKey = key
+                    invalidate()
+                    return true
+                }
+                // No key at this position - let the touch pass through
+                return false
+            }
+            MotionEvent.ACTION_MOVE -> {
                 val key = findKeyAt(event.x, event.y)
                 if (key != pressedKey) {
                     pressedKey = key
                     invalidate()
                 }
-                return true
+                return pressedKey != null
             }
             MotionEvent.ACTION_UP -> {
+                val hadKey = pressedKey != null
                 pressedKey?.let { onKeyClick(it.key) }
                 pressedKey = null
                 invalidate()
-                return true
+                return hadKey
             }
         }
-        return super.onTouchEvent(event)
+        return false
     }
 
     private fun findKeyAt(x: Float, y: Float): KeyBounds? {

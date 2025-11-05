@@ -1,10 +1,13 @@
 package com.splitkeyboard
 
 import android.graphics.Color
+import android.graphics.PixelFormat
 import android.inputmethodservice.InputMethodService
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import com.splitkeyboard.model.Key
 import com.splitkeyboard.model.KeyType
@@ -38,8 +41,36 @@ class SplitKeyboardService : InputMethodService() {
     override fun onCreateInputView(): View {
         config = KeyboardConfig.load(this)
 
-        // Make the input window background transparent
-        window?.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        // Configure window to be truly fullscreen and overlay properly
+        window?.window?.let { win ->
+            win.setBackgroundDrawableResource(android.R.color.transparent)
+            win.setLayout(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            win.setGravity(Gravity.TOP or Gravity.LEFT)
+
+            // Set flags to allow the window to extend over the entire screen
+            win.addFlags(
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+            )
+            win.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+
+            // Allow touches to pass through in areas without keys
+            win.setFlags(
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+            )
+
+            // Make the window cover the full screen
+            win.attributes = win.attributes?.apply {
+                width = WindowManager.LayoutParams.MATCH_PARENT
+                height = WindowManager.LayoutParams.MATCH_PARENT
+                gravity = Gravity.TOP or Gravity.LEFT
+                format = PixelFormat.TRANSLUCENT
+            }
+        }
 
         // Ensure extract view is not shown in fullscreen mode
         setExtractViewShown(false)
@@ -49,7 +80,7 @@ class SplitKeyboardService : InputMethodService() {
             config?.widthPercent ?: 15f,
             ::handleKeyClick
         ).apply {
-            // Set layout parameters to fill the entire screen height
+            // Set layout parameters to fill the entire screen
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
