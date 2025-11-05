@@ -32,6 +32,16 @@ class SplitKeyboardService : InputMethodService() {
         return true
     }
 
+    override fun onShowInputRequested(flags: Int, configChange: Boolean): Boolean {
+        // Always show the keyboard when requested, don't let Android auto-hide it
+        return true
+    }
+
+    override fun onEvaluateInputViewShown(): Boolean {
+        // Always keep the keyboard view shown when active
+        return true
+    }
+
     override fun onComputeInsets(outInsets: Insets?) {
         super.onComputeInsets(outInsets)
         // Tell the system that our keyboard doesn't consume any vertical space
