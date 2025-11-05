@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="key_min_touch_target">48dp</dimen>
+    <dimen name="key_spacing">8dp</dimen>
+    <dimen name="key_corner_radius">8dp</dimen>
+    <dimen name="keyboard_height">240dp</dimen>
+</resources>
