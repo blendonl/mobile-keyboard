@@ -1,6 +1,8 @@
 package com.splitkeyboard.ui.settings
 
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -10,8 +12,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.splitkeyboard.model.KeyboardConfig
+import com.splitkeyboard.ui.overlay.KeyboardOverlayService
 import com.splitkeyboard.ui.theme.SplitKeyboardTheme
 
 class SettingsActivity : ComponentActivity() {
@@ -45,7 +49,18 @@ fun SettingsScreen(
     onEnableKeyboard: () -> Unit,
     onSelectKeyboard: () -> Unit
 ) {
+    val context = LocalContext.current
     var widthPercent by remember { mutableStateOf(15f) }
+    var isOverlayActive by remember { mutableStateOf(false) }
+    var hasOverlayPermission by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Settings.canDrawOverlays(context)
+            } else {
+                true
+            }
+        )
+    }
 
     // Load configuration when the composable is first created
     LaunchedEffect(Unit) {
@@ -71,7 +86,91 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Setup Section
+            // System Overlay Section (NEW METHOD)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Split Keyboard Overlay (Recommended)",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Text(
+                        text = "Use system overlays to create true side panels. The app window will be narrower with keyboard panels on the left and right edges.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    if (!hasOverlayPermission) {
+                        Button(
+                            onClick = {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                    val intent = Intent(
+                                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                        Uri.parse("package:${context.packageName}")
+                                    )
+                                    context.startActivity(intent)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Grant Overlay Permission")
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    if (!isOverlayActive) {
+                                        val intent = Intent(context, KeyboardOverlayService::class.java).apply {
+                                            action = KeyboardOverlayService.ACTION_SHOW
+                                        }
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                            context.startForegroundService(intent)
+                                        } else {
+                                            context.startService(intent)
+                                        }
+                                        isOverlayActive = true
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                enabled = !isOverlayActive
+                            ) {
+                                Text("Show Keyboard")
+                            }
+
+                            Button(
+                                onClick = {
+                                    if (isOverlayActive) {
+                                        val intent = Intent(context, KeyboardOverlayService::class.java).apply {
+                                            action = KeyboardOverlayService.ACTION_HIDE
+                                        }
+                                        context.startService(intent)
+                                        isOverlayActive = false
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                enabled = isOverlayActive,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Text("Hide Keyboard")
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Setup Section (ORIGINAL IME METHOD)
             Card(
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -80,12 +179,12 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Setup",
+                        text = "Traditional IME Setup (Alternative)",
                         style = MaterialTheme.typography.titleMedium
                     )
 
                     Text(
-                        text = "To use the Split Keyboard, you need to enable it in your system settings and select it as your input method.",
+                        text = "Traditional keyboard method. Note: Android limitations prevent true side-by-side layout with this method.",
                         style = MaterialTheme.typography.bodyMedium
                     )
 
