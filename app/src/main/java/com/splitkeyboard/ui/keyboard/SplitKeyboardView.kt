@@ -20,6 +20,11 @@ class SplitKeyboardView(
     private val onKeyClick: (Key) -> Unit
 ) : View(context) {
 
+    init {
+        // Make the background transparent so the app shows through
+        setBackgroundColor(Color.TRANSPARENT)
+    }
+
     private var currentLayer: KeyboardLayer? = null
     private val keyPaint = Paint().apply {
         color = Color.parseColor("#2C2C2C")

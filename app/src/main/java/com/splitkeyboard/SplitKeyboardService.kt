@@ -1,5 +1,6 @@
 package com.splitkeyboard
 
+import android.graphics.Color
 import android.inputmethodservice.InputMethodService
 import android.view.KeyEvent
 import android.view.View
@@ -25,6 +26,9 @@ class SplitKeyboardService : InputMethodService() {
 
     override fun onCreateInputView(): View {
         config = KeyboardConfig.load(this)
+
+        // Make the input window background transparent
+        window?.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         keyboardView = SplitKeyboardView(
             this,
