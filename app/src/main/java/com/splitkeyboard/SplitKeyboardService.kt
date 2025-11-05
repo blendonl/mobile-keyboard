@@ -3,6 +3,7 @@ package com.splitkeyboard
 import android.inputmethodservice.InputMethodService
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import com.splitkeyboard.model.Key
 import com.splitkeyboard.model.KeyType
@@ -29,7 +30,13 @@ class SplitKeyboardService : InputMethodService() {
             this,
             config?.widthPercent ?: 15f,
             ::handleKeyClick
-        )
+        ).apply {
+            // Set layout parameters to fill the entire screen height
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
 
         // Set initial layer
         switchToLayer(config?.currentLayer ?: "default")
