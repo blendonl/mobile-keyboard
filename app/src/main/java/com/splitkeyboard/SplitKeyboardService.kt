@@ -24,11 +24,25 @@ class SplitKeyboardService : InputMethodService() {
     private var currentLayerName = "default"
     private var isShifted = false
 
+    override fun onEvaluateFullscreenMode(): Boolean {
+        // Always use fullscreen mode so keyboard overlays the entire screen
+        return true
+    }
+
+    override fun onCreateExtractTextView(): View? {
+        // Don't show the extract text view in fullscreen mode
+        // This allows our transparent keyboard to overlay the app
+        return null
+    }
+
     override fun onCreateInputView(): View {
         config = KeyboardConfig.load(this)
 
         // Make the input window background transparent
         window?.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        // Ensure extract view is not shown in fullscreen mode
+        setExtractViewShown(false)
 
         keyboardView = SplitKeyboardView(
             this,
