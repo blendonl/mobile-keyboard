@@ -32,6 +32,33 @@ class SplitKeyboardService : InputMethodService() {
         return true
     }
 
+    override fun onComputeInsets(outInsets: Insets?) {
+        super.onComputeInsets(outInsets)
+        // Tell the system that our keyboard doesn't consume any vertical space
+        // This prevents the app from being resized or shifted up
+        outInsets?.apply {
+            contentTopInsets = 0
+            visibleTopInsets = 0
+            touchableInsets = Insets.TOUCHABLE_INSETS_REGION
+            touchableRegion.setEmpty()
+
+            // Add touchable regions for the left and right panels only
+            keyboardView?.let { view ->
+                val screenWidth = view.width
+                val panelWidth = (screenWidth * ((config?.widthPercent ?: 15f) / 100f)).toInt()
+
+                // Left panel touchable region
+                touchableRegion.union(
+                    android.graphics.Rect(0, 0, panelWidth, view.height)
+                )
+                // Right panel touchable region
+                touchableRegion.union(
+                    android.graphics.Rect(screenWidth - panelWidth, 0, screenWidth, view.height)
+                )
+            }
+        }
+    }
+
     override fun onCreateExtractTextView(): View? {
         // Don't show the extract text view in fullscreen mode
         // This allows our transparent keyboard to overlay the app
@@ -85,6 +112,10 @@ class SplitKeyboardService : InputMethodService() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
+            // Add layout change listener to update insets
+            addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+                updateInputViewShown()
+            }
         }
 
         // Set initial layer

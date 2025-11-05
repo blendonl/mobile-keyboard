@@ -1,4 +1,4 @@
-package com.splitkeyboard.ui.keyboard
+package com.splitkeyboard.ui.overlay
 
 import android.content.Context
 import android.graphics.Canvas
@@ -8,24 +8,26 @@ import android.graphics.RectF
 import android.view.MotionEvent
 import android.view.View
 import com.splitkeyboard.model.Key
-import com.splitkeyboard.model.KeyType
 import com.splitkeyboard.model.KeyboardLayer
+import com.splitkeyboard.model.KeyboardLayers
+
+enum class PanelSide {
+    LEFT, RIGHT
+}
 
 /**
- * Custom view that renders the split keyboard
+ * View that renders a single keyboard panel (left or right)
  */
-class SplitKeyboardView(
+class KeyboardPanelView(
     context: Context,
-    private val widthPercent: Float,
+    private val side: PanelSide,
     private val onKeyClick: (Key) -> Unit
 ) : View(context) {
 
-    init {
-        // Make the background transparent so the app shows through
-        setBackgroundColor(Color.TRANSPARENT)
-    }
-
     private var currentLayer: KeyboardLayer? = null
+    private val keys = mutableListOf<KeyBounds>()
+    private var pressedKey: KeyBounds? = null
+
     private val keyPaint = Paint().apply {
         color = Color.parseColor("#2C2C2C")
         style = Paint.Style.FILL
@@ -47,26 +49,29 @@ class SplitKeyboardView(
         strokeWidth = 2f
         isAntiAlias = true
     }
-
-    private val leftPanelKeys = mutableListOf<KeyBounds>()
-    private val rightPanelKeys = mutableListOf<KeyBounds>()
-    private var pressedKey: KeyBounds? = null
+    private val backgroundPaint = Paint().apply {
+        color = Color.parseColor("#1A1A1A")
+        style = Paint.Style.FILL
+    }
 
     private data class KeyBounds(
         val key: Key,
         val rect: RectF
     )
 
+    init {
+        // Set background color for the panel
+        setBackgroundColor(Color.parseColor("#1A1A1A"))
+
+        // Load default layer
+        val layers = KeyboardLayers.getDefaultLayers()
+        setLayer(layers["default"]!!)
+    }
+
     fun setLayer(layer: KeyboardLayer) {
         currentLayer = layer
         calculateKeyBounds()
         invalidate()
-    }
-
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        // Force the view to measure to the full screen dimensions
-        val displayMetrics = context.resources.displayMetrics
-        setMeasuredDimension(displayMetrics.widthPixels, displayMetrics.heightPixels)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -76,36 +81,27 @@ class SplitKeyboardView(
 
     private fun calculateKeyBounds() {
         val layer = currentLayer ?: return
-        leftPanelKeys.clear()
-        rightPanelKeys.clear()
+        keys.clear()
 
-        val screenWidth = width.toFloat()
-        val screenHeight = height.toFloat()
-        val panelWidth = screenWidth * (widthPercent / 100f)
-
+        val panelWidth = width.toFloat()
+        val panelHeight = height.toFloat()
         val keyMargin = 4f
         val keyPadding = 8f
 
-        // Calculate left panel keys
+        // Get the appropriate keys for this panel side
+        val rows = when (side) {
+            PanelSide.LEFT -> layer.leftKeys
+            PanelSide.RIGHT -> layer.rightKeys
+        }
+
         calculatePanelKeys(
-            layer.leftKeys,
+            rows,
             0f,
             panelWidth,
-            screenHeight,
+            panelHeight,
             keyMargin,
             keyPadding,
-            leftPanelKeys
-        )
-
-        // Calculate right panel keys
-        calculatePanelKeys(
-            layer.rightKeys,
-            screenWidth - panelWidth,
-            panelWidth,
-            screenHeight,
-            keyMargin,
-            keyPadding,
-            rightPanelKeys
+            keys
         )
     }
 
@@ -145,17 +141,13 @@ class SplitKeyboardView(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
+        // Draw background
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), backgroundPaint)
+
         // Set text size based on screen
         textPaint.textSize = height / 30f
 
-        // Draw left panel keys
-        drawKeys(canvas, leftPanelKeys)
-
-        // Draw right panel keys
-        drawKeys(canvas, rightPanelKeys)
-    }
-
-    private fun drawKeys(canvas: Canvas, keys: List<KeyBounds>) {
+        // Draw keys
         keys.forEach { keyBounds ->
             val paint = if (keyBounds == pressedKey) keyPressedPaint else keyPaint
 
@@ -181,7 +173,6 @@ class SplitKeyboardView(
                     invalidate()
                     return true
                 }
-                // No key at this position - let the touch pass through
                 return false
             }
             MotionEvent.ACTION_MOVE -> {
@@ -204,8 +195,6 @@ class SplitKeyboardView(
     }
 
     private fun findKeyAt(x: Float, y: Float): KeyBounds? {
-        return (leftPanelKeys + rightPanelKeys).firstOrNull {
-            it.rect.contains(x, y)
-        }
+        return keys.firstOrNull { it.rect.contains(x, y) }
     }
 }
